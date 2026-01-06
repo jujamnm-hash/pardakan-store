@@ -1,0 +1,37 @@
+<! DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>دروستکردنی ئایکۆن</title>
+</head>
+<body>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <button onclick="download()">داگرتنی ئایکۆن</button>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // پاشبنەما
+        ctx.fillStyle = '#3498db';
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // ئایکۆنی پەردە
+        ctx.fillStyle = '#ffffff';
+        ctx. font = 'bold 280px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🪟', 256, 256);
+        
+        function download() {
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'icon-512.png';
+                a. click();
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "name": "pardakan-store",
+  "builds": [
+    {
+      "src": "server.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src":  "index.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server.py"
+    },
+    {
+      "src": "/service-worker.js",
+      "dest": "/service-worker.js",
+      "headers": {
+        "Service-Worker-Allowed": "/"
+      }
+    },
+    {
+      "src":  "/(.*\\.(js|css|png|json))",
+      "dest": "/$1"
+    },
+    {
+      "src":  "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "FLASK_ENV": "production"
+  },
+  "regions": ["iad1"]
+}

@@ -1,0 +1,38 @@
+{
+  "name":  "سیستەمی دوکانی فرۆشتنی پەردە",
+  "short_name": "دوکانی پەردە",
+  "description": "سیستەمێکی تەواو بۆ بەڕێوەبردن و فرۆشتنی پەردە لەگەڵ پانێلی ئەدمین",
+  "start_url":  "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#2c3e50",
+  "theme_color": "#3498db",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "lang": "ku",
+  "dir": "rtl",
+  "categories": ["shopping", "business", "productivity"],
+  "screenshots": [
+    {
+      "src": "screenshot. png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
