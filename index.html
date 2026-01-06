@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دوکانی فرۆشتنی پەردە</title>
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="دوکانی پەردە">
+    <meta name="theme-color" content="#3498db">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-basket-fill"></i> دوکانی پەردە
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="showCustomerView()">سەرەکی</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#productsSection">بەرهەمەکان</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-outline-light position-relative" onclick="openCart()">
+                        <i class="bi bi-cart3"></i>
+                        <span class="cart-badge" id="cartBadge">0</span>
+                    </button>
+                    <button class="btn btn-warning" onclick="showAdminView()">
+                        <i class="bi bi-gear-fill"></i> پانێلی بەڕێوەبردن
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Customer View -->
+    <div id="customerView">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="container text-center">
+                <h1 class="display-4 fw-bold mb-3">بەخێربێن بۆ دوکانی پەردە</h1>
+                <p class="lead mb-4">باشترین جۆرەکانی پەردە بە نرخی گونجاو</p>
+                <a href="#productsSection" class="btn btn-primary btn-lg">
+                    <i class="bi bi-bag-check"></i> بینینی بەرهەمەکان
+                </a>
+            </div>
+        </section>
+
+        <!-- Filter Section -->
+        <section class="filter-section py-4 bg-light" id="productsSection">
+            <div class="container">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="searchInput" placeholder="گەڕان بە ناوی بەرهەم..." onkeyup="filterProducts()">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="categoryFilter" onchange="filterProducts()">
+                            <option value="">هەموو جۆرەکان</option>
+                            <option value="Blackout">Blackout</option>
+                            <option value="Sheer">Sheer</option>
+                            <option value="Thermal">Thermal</option>
+                            <option value="Decorative">Decorative</option>
+                            <option value="Roller">Roller Blind</option>
+                            <option value="Vertical">Vertical Blind</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="sortFilter" onchange="filterProducts()">
+                            <option value="name">ڕیزکردن بە ناو</option>
+                            <option value="price-low">نرخ:  کەم بۆ زۆر</option>
+                            <option value="price-high">نرخ: زۆر بۆ کەم</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-secondary w-100" onclick="resetFilters()">
+                            <i class="bi bi-arrow-clockwise"></i> ڕیسێت
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Grid -->
+        <section class="products-section py-5">
+            <div class="container">
+                <div class="row g-4" id="productsGrid">
+                    <div class="col-12 text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">چاوەڕوانبە...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Admin View -->
+    <div id="adminView" class="d-none">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <div class="col-md-3 col-lg-2 bg-dark text-white min-vh-100 p-3">
+                    <div class="d-flex align-items-center mb-4">
+                        <i class="bi bi-shield-check fs-3 me-2"></i>
+                        <h5 class="mb-0">پانێلی ئەدمین</h5>
+                    </div>
+                    <ul class="nav flex-column gap-2">
+                        <li class="nav-item">
+                            <a class="nav-link text-white active" href="#" onclick="showAdminSection('dashboard')">
+                                <i class="bi bi-speedometer2"></i> داشبۆرد
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="#" onclick="showAdminSection('products')">
+                                <i class="bi bi-box-seam"></i> بەرهەمەکان
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="#" onclick="showAdminSection('orders')">
+                                <i class="bi bi-receipt"></i> وەسڵەکان
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="#" onclick="showAdminSection('inventory')">
+                                <i class="bi bi-boxes"></i> مەخزەن
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="#" onclick="showAdminSection('reports')">
+                                <i class="bi bi-graph-up"></i> راپۆرتەکان
+                            </a>
+                        </li>
+                        <li class="nav-item mt-4">
+                            <a class="nav-link text-warning" href="#" onclick="showCustomerView()">
+                                <i class="bi bi-arrow-left"></i> گەڕانەوە بۆ دوکان
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Main Content -->
+                <div class="col-md-9 col-lg-10 p-4">
+                    <!-- Dashboard Section -->
+                    <div id="dashboardSection" class="admin-section">
+                        <h2 class="mb-4">داشبۆرد</h2>
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-3">
+                                <div class="stat-card bg-primary text-white">
+                                    <i class="bi bi-box-seam"></i>
+                                    <h3 id="totalProducts">0</h3>
+                                    <p>کۆی بەرهەمەکان</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-success text-white">
+                                    <i class="bi bi-receipt"></i>
+                                    <h3 id="totalOrders">0</h3>
+                                    <p>کۆی وەسڵەکان</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-warning text-white">
+                                    <i class="bi bi-currency-dollar"></i>
+                                    <h3 id="totalRevenue">0</h3>
+                                    <p>داهاتی گشتی</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-danger text-white">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    <h3 id="lowStockCount">0</h3>
+                                    <p>بەرهەمی کەم</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">فرۆشتنی مانگانە</h5>
+                                        <canvas id="salesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">دابەشبوونی جۆرەکان</h5>
+                                        <canvas id="categoryChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Management Section -->
+                    <div id="productsSection" class="admin-section d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>بەڕێوەبردنی بەرهەمەکان</h2>
+                            <button class="btn btn-primary" onclick="openProductModal()">
+                                <i class="bi bi-plus-circle"></i> زیادکردنی بەرهەم
+                            </button>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ژمارە</th>
+                                                <th>ناو</th>
+                                                <th>جۆر</th>
+                                                <th>نرخ</th>
+                                                <th>مەخزەن</th>
+                                                <th>کردارەکان</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="productsTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Orders Section -->
+                    <div id="ordersSection" class="admin-section d-none">
+                        <h2 class="mb-4">بەڕێوەبردنی وەسڵەکان</h2>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ژمارەی وەسڵ</th>
+                                                <th>کڕیار</th>
+                                                <th>بەروار</th>
+                                                <th>کۆی گشتی</th>
+                                                <th>دۆخ</th>
+                                                <th>کردارەکان</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ordersTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventory Section -->
+                    <div id="inventorySection" class="admin-section d-none">
+                        <h2 class="mb-4">کۆگای مەخزەن</h2>
+                        <div class="alert alert-warning" id="lowStockAlert">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span id="lowStockMessage"></span>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>بەرهەم</th>
+                                                <th>جۆر</th>
+                                                <th>بڕی ئێستا</th>
+                                                <th>دۆخ</th>
+                                                <th>کردارەکان</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="inventoryTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reports Section -->
+                    <div id="reportsSection" class="admin-section d-none">
+                        <h2 class="mb-4">راپۆرتەکان</h2>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">لە بەرواری: </label>
+                                <input type="date" class="form-control" id="reportStartDate">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">بۆ بەرواری: </label>
+                                <input type="date" class="form-control" id="reportEndDate">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mb-4" onclick="generateReport()">
+                            <i class="bi bi-file-earmark-text"></i> دروستکردنی راپۆرت
+                        </button>
+                        <div class="row g-4 mb-4" id="reportStats">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h5>کۆی فرۆشتن</h5>
+                                        <h2 class="text-primary" id="reportTotalSales">0</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h5>ژمارەی وەسڵەکان</h5>
+                                        <h2 class="text-success" id="reportOrderCount">0</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h5>نرخی ناوەند</h5>
+                                        <h2 class="text-warning" id="reportAvgOrder">0</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">بەرهەمە زۆر فرۆشراوەکان</h5>
+                                <canvas id="topProductsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div class="modal fade" id="cartModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-cart3"></i> سەبەتەی کڕین</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="cartItems"></div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                        <h4>کۆی گشتی: </h4>
+                        <h4 class="text-primary" id="cartTotal">0 دینار</h4>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">داخستن</button>
+                    <button type="button" class="btn btn-danger" onclick="clearCart()">
+                        <i class="bi bi-trash"></i> پاککردنەوە
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="openCheckout()">
+                        <i class="bi bi-check-circle"></i> تەواوکردنی کڕین
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="modal fade" id="checkoutModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">تەواوکردنی وەسڵ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="checkoutForm">
+                        <div class="mb-3">
+                            <label class="form-label">ناوی تەواو</label>
+                            <input type="text" class="form-control" id="customerName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ژمارە تەلەفۆن</label>
+                            <input type="tel" class="form-control" id="customerPhone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ناونیشان</label>
+                            <textarea class="form-control" id="customerAddress" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">پاشگەزبوونەوە</button>
+                    <button type="button" class="btn btn-success" onclick="completeOrder()">
+                        <i class="bi bi-check-circle"></i> پشتڕاستکردنەوە
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="modal fade" id="productModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productModalTitle">زیادکردنی بەرهەم</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productForm">
+                        <input type="hidden" id="productId">
+                        <div class="mb-3">
+                            <label class="form-label">ناوی بەرهەم</label>
+                            <input type="text" class="form-control" id="productName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">وەسف</label>
+                            <textarea class="form-control" id="productDescription" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">جۆر</label>
+                            <select class="form-select" id="productCategory" required>
+                                <option value="Blackout">Blackout</option>
+                                <option value="Sheer">Sheer</option>
+                                <option value="Thermal">Thermal</option>
+                                <option value="Decorative">Decorative</option>
+                                <option value="Roller">Roller Blind</option>
+                                <option value="Vertical">Vertical Blind</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">نرخ (دینار)</label>
+                            <input type="number" class="form-control" id="productPrice" required min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">بڕی مەخزەن</label>
+                            <input type="number" class="form-control" id="productStock" required min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">لینکی وێنە</label>
+                            <input type="url" class="form-control" id="productImage" placeholder="https://...">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">پاشگەزبوونەوە</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProduct()">
+                        <i class="bi bi-save"></i> پاشەکەوتکردن
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div class="modal fade" id="orderDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">وردەکاری وەسڵ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="orderDetailsContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">داخستن</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="notificationToast" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="bi bi-info-circle me-2" id="toastIcon"></i>
+                <strong class="me-auto" id="toastTitle">ئاگاداری</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <!-- PWA Install Prompt -->
+    <div id="installPrompt" class="position-fixed bottom-0 start-0 end-0 p-3 d-none" style="z-index: 11000;">
+        <div class="card shadow-lg">
+            <div class="card-body">
+                <h5><i class="bi bi-phone"></i> دابەزاندنی ئەپ</h5>
+                <p>ئەم سیستەمە وەک ئەپ لەسەر مۆبایلەکەت دابمەزرێنە! </p>
+                <button class="btn btn-primary" id="installBtn">دابەزاندن</button>
+                <button class="btn btn-secondary" id="dismissBtn">دواتر</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+    
+    <script>
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/pardakan-store/service-worker.js')
+                    .then(reg => console.log('✅ SW registered'))
+                    .catch(err => console.error('❌ SW error:', err));
+            });
+        }
+
+        // Install Prompt
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        const dismissBtn = document.getElementById('dismissBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            setTimeout(() => {
+                if (! localStorage.getItem('installDismissed')) {
+                    installPrompt.classList.remove('d-none');
+                }
+            }, 3000);
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (! deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') console.log('✅ App installed');
+                deferredPrompt = null;
+                installPrompt.classList.add('d-none');
+            });
+        }
+
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                installPrompt.classList.add('d-none');
+                localStorage.setItem('installDismissed', 'true');
+            });
+        }
+    </script>
+</body>
+</html>

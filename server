@@ -1,0 +1,446 @@
+# =========================================
+# Imports
+# =========================================
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+import sqlite3
+from datetime import datetime, timedelta
+import json
+import os
+
+# =========================================
+# Flask App Setup
+# =========================================
+app = Flask(__name__)
+CORS(app)
+
+DATABASE = 'store.db'
+
+# =========================================
+# Database Helper Functions
+# =========================================
+def get_db_connection():
+    """دروستکردنی پەیوەندی بە داتابەیس"""
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    """دروستکردنی جدولەکان و داتای نموونەی"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Create products table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            price REAL NOT NULL,
+            stock_quantity INTEGER NOT NULL DEFAULT 0,
+            category TEXT,
+            image_url TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Create orders table
+    cursor. execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_name TEXT NOT NULL,
+            customer_phone TEXT NOT NULL,
+            customer_address TEXT,
+            total_amount REAL NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Create order_items table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS order_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            product_id INTEGER NOT NULL,
+            product_name TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            price REAL NOT NULL,
+            subtotal REAL NOT NULL,
+            FOREIGN KEY (order_id) REFERENCES orders(id),
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        )
+    ''')
+    
+    # Create inventory_log table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS inventory_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            change_type TEXT NOT NULL,
+            quantity_change INTEGER NOT NULL,
+            previous_quantity INTEGER NOT NULL,
+            new_quantity INTEGER NOT NULL,
+            note TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        )
+    ''')
+    
+    # Check if we need to add sample data
+    cursor.execute('SELECT COUNT(*) as count FROM products')
+    count = cursor.fetchone()['count']
+    
+    if count == 0:
+        print('زیادکردنی داتای نموونەی.. .')
+        sample_products = [
+            {
+                'name': 'پەردەی Blackout - ڕەش',
+                'description': 'پەردەیەکی بەکواڵێتی بەرز، ڕووناکی بە تەواوی دەگرێت، گونجاوە بۆ ژووری نوستن',
+                'price': 45000,
+                'stock_quantity':  50,
+                'category': 'Blackout',
+                'image_url': 'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?w=500'
+            },
+            {
+                'name': 'پەردەی Blackout - سپی',
+                'description': 'پەردەی سپی بۆ ڕووناکی گرتن، دیزاینی مۆدێرن',
+                'price': 42000,
+                'stock_quantity': 45,
+                'category': 'Blackout',
+                'image_url': 'https://images.unsplash.com/photo-1591088398332-8a7791972843?w=500'
+            },
+            {
+                'name':  'پەردەی Sheer - کرێمی',
+                'description': 'پەردەیەکی سووک و شەفاف، ڕووناکی نەرم دەبەخشێت',
+                'price': 35000,
+                'stock_quantity': 60,
+                'category': 'Sheer',
+                'image_url': 'https://images.unsplash.com/photo-1604709095912-ad5f1b729f9d?w=500'
+            },
+            {
+                'name':  'پەردەی Sheer - سوور',
+                'description': 'پەردەی شەفافی سوور، دروستکەری کەشێکی گەرم',
+                'price': 38000,
+                'stock_quantity': 35,
+                'category': 'Sheer',
+                'image_url': 'https://images.unsplash.com/photo-1602941525421-8f8b81d3edbb?w=500'
+            },
+            {
+                'name':  'پەردەی Thermal - قاوەیی',
+                'description': 'پەردەی گەرمی، پاراستن لە سەرما و گەرما',
+                'price': 55000,
+                'stock_quantity': 30,
+                'category': 'Thermal',
+                'image_url': 'https://images.unsplash.com/photo-1616594266467-81e92a99f2e9?w=500'
+            },
+            {
+                'name':  'پەردەی Decorative - زێڕین',
+                'description': 'پەردەی ڕازاوە بە نەخشی جوان، زێڕینی ڕەنگ',
+                'price':  65000,
+                'stock_quantity': 25,
+                'category': 'Decorative',
+                'image_url': 'https://images.unsplash.com/photo-1600210491892-03d54c0aaf87?w=500'
+            },
+            {
+                'name':  'پەردەی Decorative - شین',
+                'description': 'پەردەی شینی ڕۆیال، نەخشی کلاسیک',
+                'price': 58000,
+                'stock_quantity': 28,
+                'category': 'Decorative',
+                'image_url': 'https://images.unsplash.com/photo-1593115057116-e1bb2f9eb7ff?w=500'
+            },
+            {
+                'name':  'Roller Blind - سپی',
+                'description': 'پەردەی ڕۆلەر مۆدێرن، ئاسانە بۆ بەکارهێنان',
+                'price': 40000,
+                'stock_quantity': 40,
+                'category': 'Roller',
+                'image_url': 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=500'
+            },
+            {
+                'name':  'Roller Blind - ڕەساسی',
+                'description': 'پەردەی ڕۆلەر، ڕەنگی ڕەساسی، دیزاینی ساکار',
+                'price': 42000,
+                'stock_quantity': 35,
+                'category': 'Roller',
+                'image_url': 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=500'
+            },
+            {
+                'name':  'Vertical Blind - سپی',
+                'description':  'پەردەی ستوونی، گونجاو بۆ پەنجەرەی گەورە',
+                'price': 50000,
+                'stock_quantity': 20,
+                'category': 'Vertical',
+                'image_url': 'https://images.unsplash.com/photo-1616594266467-81e92a99f2e9?w=500'
+            },
+            {
+                'name': 'پەردەی Blackout - سوور تاریک',
+                'description': 'پەردەی سووری ئەڵەگانت، دژی ڕووناکی',
+                'price': 48000,
+                'stock_quantity': 8,
+                'category': 'Blackout',
+                'image_url': 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=500'
+            },
+            {
+                'name':  'پەردەی Thermal - ڕەساسی',
+                'description':  'پەردەی گەرمی ڕەساسی، کواڵێتی بەرز',
+                'price': 52000,
+                'stock_quantity': 5,
+                'category': 'Thermal',
+                'image_url': 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=500'
+            }
+        ]
+        
+        for product in sample_products:
+            cursor.execute('''
+                INSERT INTO products (name, description, price, stock_quantity, category, image_url)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (
+                product['name'],
+                product['description'],
+                product['price'],
+                product['stock_quantity'],
+                product['category'],
+                product['image_url']
+            ))
+        
+        print(f'{len(sample_products)} بەرهەم زیادکران!')
+    
+    conn.commit()
+    conn.close()
+    print('داتابەیس ئامادەیە!')
+
+# =========================================
+# API Routes - Products
+# =========================================
+@app.route('/api/products', methods=['GET'])
+def get_products():
+    """وەرگرتنی هەموو بەرهەمەکان"""
+    try:
+        conn = get_db_connection()
+        products = conn.execute('SELECT * FROM products ORDER BY id DESC').fetchall()
+        conn.close()
+        
+        return jsonify([dict(product) for product in products])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/products/<int: product_id>', methods=['GET'])
+def get_product(product_id):
+    """وەرگرتنی بەرهەمێکی دیاریکراو"""
+    try:
+        conn = get_db_connection()
+        product = conn.execute('SELECT * FROM products WHERE id = ?', (product_id,)).fetchone()
+        conn.close()
+        
+        if product is None:
+            return jsonify({'error': 'بەرهەم نەدۆزرایەوە'}), 404
+        
+        return jsonify(dict(product))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/products', methods=['POST'])
+def create_product():
+    """دروستکردنی بەرهەمی نوێ"""
+    try: 
+        data = request.get_json()
+        
+        required_fields = ['name', 'price', 'stock_quantity', 'category']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'خانەی {field} پێویستە'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO products (name, description, price, stock_quantity, category, image_url)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            data['name'],
+            data. get('description', ''),
+            data['price'],
+            data['stock_quantity'],
+            data['category'],
+            data.get('image_url', None)
+        ))
+        
+        product_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'بەرهەم دروستکرا', 'id': product_id}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/orders', methods=['POST'])
+def create_order():
+    """دروستکردنی وەسڵی نوێ"""
+    try: 
+        data = request.get_json()
+        
+        required_fields = ['customer_name', 'customer_phone', 'total_amount', 'items']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'خانەی {field} پێویستە'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO orders (customer_name, customer_phone, customer_address, total_amount, status)
+            VALUES (?, ?, ?, ?, 'pending')
+        ''', (
+            data['customer_name'],
+            data['customer_phone'],
+            data.get('customer_address', ''),
+            data['total_amount']
+        ))
+        
+        order_id = cursor.lastrowid
+        
+        for item in data['items']:
+            subtotal = item['price'] * item['quantity']
+            
+            cursor.execute('''
+                INSERT INTO order_items (order_id, product_id, product_name, quantity, price, subtotal)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (
+                order_id,
+                item['product_id'],
+                item['product_name'],
+                item['quantity'],
+                item['price'],
+                subtotal
+            ))
+            
+            cursor.execute('''
+                UPDATE products 
+                SET stock_quantity = stock_quantity - ?  
+                WHERE id = ? 
+            ''', (item['quantity'], item['product_id']))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'وەسڵ دروستکرا', 'order_id': order_id}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# =========================================
+# Root Route
+# =========================================
+@app. route('/')
+def index():
+    """پەڕەی سەرەکی"""
+    return '''
+    <html dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>API سیستەمی دوکانی پەردە</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    max-width: 800px;
+                    margin: 50px auto;
+                    padding:  20px;
+                    background:  #f5f5f5;
+                }
+                .container {
+                    background: white;
+                    padding: 30px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
+                h1 {
+                    color: #2c3e50;
+                    text-align: center;
+                }
+                .status {
+                    background: #27ae60;
+                    color:  white;
+                    padding: 10px;
+                    border-radius: 5px;
+                    text-align: center;
+                    margin: 20px 0;
+                }
+                .endpoints {
+                    background: #ecf0f1;
+                    padding: 20px;
+                    border-radius: 5px;
+                    margin-top: 20px;
+                }
+                .endpoint {
+                    margin: 10px 0;
+                    padding: 10px;
+                    background: white;
+                    border-radius:  3px;
+                }
+                . method {
+                    display: inline-block;
+                    padding: 3px 8px;
+                    border-radius: 3px;
+                    font-weight: bold;
+                    margin-left: 10px;
+                }
+                .get { background: #3498db; color: white; }
+                .post { background: #27ae60; color: white; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🏪 API سیستەمی دوکانی پەردە</h1>
+                <div class="status">
+                    ✓ سێرڤەر کاردەکات و ئامادەیە
+                </div>
+                
+                <h2>API Endpoints: </h2>
+                <div class="endpoints">
+                    <h3>بەرهەمەکان: </h3>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <code>/api/products</code> - هەموو بەرهەمەکان
+                    </div>
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <code>/api/products/: id</code> - بەرهەمێکی دیاریکراو
+                    </div>
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <code>/api/products</code> - زیادکردنی بەرهەم
+                    </div>
+                    
+                    <h3>وەسڵەکان:</h3>
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <code>/api/orders</code> - دروستکردنی وەسڵ
+                    </div>
+                </div>
+                
+                <p style="text-align: center; margin-top: 30px; color: #7f8c8d;">
+                    دروستکراوە بە ❤️ بۆ کۆمەڵگەی کوردی
+                </p>
+            </div>
+        </body>
+    </html>
+    '''
+
+# =========================================
+# Main
+# =========================================
+if __name__ == '__main__':
+    print('='*50)
+    print('🚀 دەستپێکردنی سێرڤەری سیستەمی دوکانی پەردە')
+    print('='*50)
+    
+    init_db()
+    
+    print('\n✓ سێرڤەر کاردەکات لەسەر:  http://localhost:5000')
+    print('✓ فایلی index.html بکەرەوە لە وێبگەڕەکەت\n')
+    print('بۆ وەستاندن:  Ctrl+C بکە\n')
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
