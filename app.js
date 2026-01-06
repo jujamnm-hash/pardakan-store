@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const reportStartDate = document.getElementById('reportStartDate');
-    const reportEndDate = document.getElementById('reportEndDate');
+    const reportEndDate = document. getElementById('reportEndDate');
     if (reportStartDate) reportStartDate.valueAsDate = firstDayOfMonth;
     if (reportEndDate) reportEndDate.valueAsDate = today;
 });
@@ -78,7 +78,7 @@ function getDemoProducts() {
             price:  45000,
             stock_quantity: 50,
             category: 'Blackout',
-            image_url: 'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?w=500'
+            image_url:  'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?w=500'
         },
         {
             id: 2,
@@ -94,9 +94,18 @@ function getDemoProducts() {
             name: 'پەردەی Thermal - قاوەیی',
             description: 'پەردەی گەرمی، پاراستن لە سەرما و گەرما',
             price: 55000,
-            stock_quantity: 30,
+            stock_quantity:  30,
             category: 'Thermal',
             image_url:  'https://images.unsplash.com/photo-1616594266467-81e92a99f2e9?w=500'
+        },
+        {
+            id: 4,
+            name: 'پەردەی Decorative - زێڕین',
+            description: 'پەردەی ڕازاوە بە نەخشی جوان',
+            price: 65000,
+            stock_quantity:  25,
+            category: 'Decorative',
+            image_url: 'https://images.unsplash.com/photo-1600210491892-03d54c0aaf87?w=500'
         }
     ];
 }
@@ -158,7 +167,7 @@ function filterProducts() {
     });
     
     if (sortBy === 'name') {
-        filtered.sort((a, b) => a.name.localeCompare(b. name, 'ar'));
+        filtered. sort((a, b) => a.name.localeCompare(b.name, 'ar'));
     } else if (sortBy === 'price-low') {
         filtered.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'price-high') {
@@ -171,7 +180,7 @@ function filterProducts() {
 function resetFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('categoryFilter').value = '';
-    document.getElementById('sortFilter').value = 'name';
+    document. getElementById('sortFilter').value = 'name';
     renderProducts(allProducts);
 }
 
@@ -191,7 +200,7 @@ function addToCart(productId) {
         return;
     }
     
-    const existingItem = cart.find(item => item.id === productId);
+    const existingItem = cart. find(item => item.id === productId);
     
     if (existingItem) {
         if (existingItem.quantity < product.stock_quantity) {
@@ -351,20 +360,40 @@ async function completeOrder() {
     
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    showNotification('وەسڵەکەت بە سەرکەوتوویی تۆمارکرا!  سوپاس بۆ کڕینەکەت', 'success');
+    const orderData = {
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        customer_address: customerAddress,
+        total_amount: total,
+        items: cart.map(item => ({
+            product_id: item.id,
+            product_name: item.name,
+            quantity: item.quantity,
+            price: item.price
+        }))
+    };
     
-    cart = [];
-    saveCart();
-    updateCartBadge();
-    
-    document.getElementById('checkoutForm').reset();
-    
-    const checkoutModal = bootstrap.Modal. getInstance(document.getElementById('checkoutModal'));
-    if (checkoutModal) checkoutModal.hide();
+    try {
+        await apiRequest('/orders', 'POST', orderData);
+        showNotification('وەسڵەکەت بە سەرکەوتوویی تۆمارکرا!  سوپاس بۆ کڕینەکەت', 'success');
+        
+        cart = [];
+        saveCart();
+        updateCartBadge();
+        
+        document.getElementById('checkoutForm').reset();
+        
+        const checkoutModal = bootstrap.Modal.getInstance(document.getElementById('checkoutModal'));
+        if (checkoutModal) checkoutModal.hide();
+        
+        await loadProducts();
+    } catch (error) {
+        showNotification('هەڵەیەک ڕوویدا لە تۆمارکردنی وەسڵ', 'error');
+    }
 }
 
 // =========================================
-// Admin Functions - View Management
+// Admin Functions
 // =========================================
 function showCustomerView() {
     document.getElementById('customerView').classList.remove('d-none');
@@ -388,13 +417,9 @@ function showAdminSection(sectionName) {
     });
     
     const section = document.getElementById(`${sectionName}Section`);
-    if (section) {
-        section.classList. remove('d-none');
-    }
+    if (section) section.classList.remove('d-none');
     
-    if (event && event.target) {
-        event.target.classList.add('active');
-    }
+    if (event && event.target) event.target.classList.add('active');
     
     switch(sectionName) {
         case 'dashboard':
@@ -409,29 +434,40 @@ function showAdminSection(sectionName) {
         case 'inventory':
             loadInventory();
             break;
+        case 'reports':
+            break;
     }
 }
 
-// =========================================
-// Admin Functions - Dashboard
-// =========================================
 async function loadDashboard() {
-    const totalProducts = document.getElementById('totalProducts');
-    const totalOrders = document.getElementById('totalOrders');
-    const totalRevenue = document.getElementById('totalRevenue');
-    const lowStockCount = document.getElementById('lowStockCount');
-    
-    if (totalProducts) totalProducts.textContent = allProducts.length;
-    if (totalOrders) totalOrders.textContent = '0';
-    if (totalRevenue) totalRevenue.textContent = formatCurrency(0);
-    if (lowStockCount) lowStockCount.textContent = allProducts.filter(p => p. stock_quantity < 10).length;
+    try {
+        const products = await apiRequest('/products');
+        const orders = await apiRequest('/orders');
+        
+        document.getElementById('totalProducts').textContent = products.length;
+        document.getElementById('totalOrders').textContent = orders. length;
+        
+        const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
+        document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
+        
+        const lowStock = products.filter(p => p.stock_quantity < 10).length;
+        document.getElementById('lowStockCount').textContent = lowStock;
+    } catch (error) {
+        document.getElementById('totalProducts').textContent = allProducts.length;
+        document. getElementById('totalOrders').textContent = '0';
+        document.getElementById('totalRevenue').textContent = formatCurrency(0);
+        document.getElementById('lowStockCount').textContent = allProducts.filter(p => p. stock_quantity < 10).length;
+    }
 }
 
-// =========================================
-// Admin Functions - Products Management
-// =========================================
 async function loadAdminProducts() {
-    renderAdminProducts(allProducts);
+    try {
+        const products = await apiRequest('/products');
+        allProducts = products;
+        renderAdminProducts(products);
+    } catch (error) {
+        renderAdminProducts(allProducts);
+    }
 }
 
 function renderAdminProducts(products) {
@@ -477,27 +513,117 @@ function renderAdminProducts(products) {
 }
 
 function openProductModal(productId = null) {
-    showNotification('ئەم تایبەتمەندیە بەردەست نییە لە وەشانی Demo', 'info');
+    currentEditProductId = productId;
+    
+    if (productId) {
+        const product = allProducts.find(p => p.id === productId);
+        if (product) {
+            document.getElementById('productModalTitle').textContent = 'دەستکاریکردنی بەرهەم';
+            document.getElementById('productId').value = product.id;
+            document.getElementById('productName').value = product.name;
+            document.getElementById('productDescription').value = product.description || '';
+            document.getElementById('productCategory').value = product.category;
+            document.getElementById('productPrice').value = product.price;
+            document.getElementById('productStock').value = product.stock_quantity;
+            document.getElementById('productImage').value = product.image_url || '';
+        }
+    } else {
+        document.getElementById('productModalTitle').textContent = 'زیادکردنی بەرهەم';
+        document.getElementById('productForm').reset();
+        document.getElementById('productId').value = '';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('productModal'));
+    modal.show();
 }
 
 function editProduct(productId) {
     openProductModal(productId);
 }
 
-function deleteProduct(productId) {
-    showNotification('ئەم تایبەتمەندیە بەردەست نییە لە وەشانی Demo', 'info');
+async function saveProduct() {
+    const id = document.getElementById('productId').value;
+    const name = document.getElementById('productName').value.trim();
+    const description = document.getElementById('productDescription').value.trim();
+    const category = document.getElementById('productCategory').value;
+    const price = parseFloat(document.getElementById('productPrice').value);
+    const stock = parseInt(document.getElementById('productStock').value);
+    const image = document. getElementById('productImage').value.trim();
+    
+    if (!name || !category || isNaN(price) || isNaN(stock)) {
+        showNotification('تکایە هەموو خانە پێویستەکان پڕبکەرەوە', 'error');
+        return;
+    }
+    
+    const productData = {
+        name,
+        description,
+        category,
+        price,
+        stock_quantity: stock,
+        image_url: image || null
+    };
+    
+    try {
+        if (id) {
+            await apiRequest(`/products/${id}`, 'PUT', productData);
+            showNotification('بەرهەم بە سەرکەوتوویی نوێکرایەوە', 'success');
+        } else {
+            await apiRequest('/products', 'POST', productData);
+            showNotification('بەرهەم بە سەرکەوتوویی زیادکرا', 'success');
+        }
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
+        modal.hide();
+        
+        await loadProducts();
+        await loadAdminProducts();
+    } catch (error) {
+        showNotification('هەڵەیەک ڕوویدا لە پاشەکەوتکردن', 'error');
+    }
 }
 
-function saveProduct() {
-    showNotification('ئەم تایبەتمەندیە بەردەست نییە لە وەشانی Demo', 'info');
+async function deleteProduct(productId) {
+    if (!confirm('دڵنیایت لە سڕینەوەی ئەم بەرهەمە؟')) return;
+    
+    try {
+        await apiRequest(`/products/${productId}`, 'DELETE');
+        showNotification('بەرهەم سڕایەوە', 'success');
+        await loadProducts();
+        await loadAdminProducts();
+    } catch (error) {
+        showNotification('هەڵەیەک ڕوویدا لە سڕینەوە', 'error');
+    }
 }
 
-// =========================================
-// Admin Functions - Orders
-// =========================================
 async function loadOrders() {
+    try {
+        const orders = await apiRequest('/orders');
+        allOrders = orders;
+        renderOrders(orders);
+    } catch (error) {
+        const tbody = document.getElementById('ordersTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <div class="empty-state">
+                            <i class="bi bi-receipt"></i>
+                            <h5>هیچ وەسڵێک نییە</h5>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+function renderOrders(orders) {
     const tbody = document.getElementById('ordersTableBody');
-    if (tbody) {
+    
+    if (!tbody) return;
+    
+    if (!orders || orders.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center py-4">
@@ -508,18 +634,122 @@ async function loadOrders() {
                 </td>
             </tr>
         `;
+        return;
+    }
+    
+    tbody.innerHTML = orders.map(order => `
+        <tr>
+            <td>#${order.id}</td>
+            <td>${order.customer_name}</td>
+            <td>${formatDate(order.created_at)}</td>
+            <td>${formatCurrency(order.total_amount)}</td>
+            <td>
+                <select class="form-select form-select-sm badge-status status-${order.status}" 
+                        onchange="updateOrderStatus(${order.id}, this.value)">
+                    <option value="pending" ${order.status === 'pending' ?  'selected' : ''}>چاوەڕوان</option>
+                    <option value="completed" ${order.status === 'completed' ? 'selected' :  ''}>تەواوبوو</option>
+                    <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>هەڵوەشاوە</option>
+                </select>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="viewOrderDetails(${order.id})">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+    try {
+        await apiRequest(`/orders/${orderId}/status`, 'PUT', { status: newStatus });
+        showNotification('دۆخی وەسڵ نوێکرایەوە', 'success');
+        await loadOrders();
+    } catch (error) {
+        showNotification('هەڵەیەک ڕوویدا', 'error');
     }
 }
 
-// =========================================
-// Admin Functions - Inventory
-// =========================================
+async function viewOrderDetails(orderId) {
+    try {
+        const order = await apiRequest(`/orders/${orderId}`);
+        
+        const content = document.getElementById('orderDetailsContent');
+        content.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h6>زانیاری کڕیار</h6>
+                    <p><strong>ناو:</strong> ${order.customer_name}</p>
+                    <p><strong>تەلەفۆن:</strong> ${order. customer_phone}</p>
+                    <p><strong>ناونیشان:</strong> ${order. customer_address || 'نییە'}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>زانیاری وەسڵ</h6>
+                    <p><strong>ژمارە:</strong> #${order.id}</p>
+                    <p><strong>بەروار:</strong> ${formatDate(order.created_at)}</p>
+                    <p><strong>کۆی گشتی:</strong> ${formatCurrency(order.total_amount)}</p>
+                </div>
+            </div>
+            
+            <h6>بەرهەمەکان</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>بەرهەم</th>
+                            <th>بڕ</th>
+                            <th>نرخی تاک</th>
+                            <th>کۆی گشتی</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${order.items.map(item => `
+                            <tr>
+                                <td>${item.product_name}</td>
+                                <td>${item. quantity}</td>
+                                <td>${formatCurrency(item. price)}</td>
+                                <td>${formatCurrency(item.subtotal)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        const modal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+        modal.show();
+    } catch (error) {
+        showNotification('هەڵەیەک ڕوویدا', 'error');
+    }
+}
+
 async function loadInventory() {
+    try {
+        const products = await apiRequest('/products');
+        renderInventory(products);
+    } catch (error) {
+        renderInventory(allProducts);
+    }
+}
+
+function renderInventory(products) {
     const tbody = document.getElementById('inventoryTableBody');
-    if (! tbody) return;
+    if (!tbody) return;
     
-    tbody.innerHTML = allProducts.map(product => {
-        let stockStatus = product.stock_quantity < 10 ? 'کەمە' : product.stock_quantity < 30 ? 'ناوەند' : 'باش';
+    const lowStockProducts = products.filter(p => p.stock_quantity < 10);
+    
+    const alert = document.getElementById('lowStockAlert');
+    const message = document.getElementById('lowStockMessage');
+    
+    if (lowStockProducts.length > 0) {
+        alert.classList.remove('d-none');
+        message.textContent = `${lowStockProducts.length} بەرهەم لە مەخزەن کەمن و پێویستە نوێبکرێنەوە`;
+    } else {
+        alert.classList.add('d-none');
+    }
+    
+    tbody.innerHTML = products.map(product => {
+        let stockStatus = product.stock_quantity === 0 ? 'تەواوبووە' : product.stock_quantity < 10 ? 'کەمە' : product.stock_quantity < 30 ? 'ناوەند' : 'باش';
         let stockClass = product.stock_quantity < 10 ? 'stock-low' : product.stock_quantity < 30 ? 'stock-medium' : 'stock-high';
         
         return `
@@ -527,9 +757,9 @@ async function loadInventory() {
                 <td>${product.name}</td>
                 <td><span class="badge bg-secondary">${product.category}</span></td>
                 <td class="${stockClass}">${product.stock_quantity}</td>
-                <td><span class="badge bg-${product.stock_quantity < 10 ? 'danger' : product. stock_quantity < 30 ?  'warning' : 'success'}">${stockStatus}</span></td>
+                <td><span class="badge bg-${product.stock_quantity === 0 ? 'danger' : product.stock_quantity < 10 ? 'warning' : 'success'}">${stockStatus}</span></td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="showNotification('ئەم تایبەتمەندیە بەردەست نییە لە وەشانی Demo', 'info')">
+                    <button class="btn btn-sm btn-primary" onclick="updateInventory(${product.id}, ${product.stock_quantity})">
                         <i class="bi bi-plus-circle"></i> نوێکردنەوە
                     </button>
                 </td>
@@ -538,18 +768,59 @@ async function loadInventory() {
     }).join('');
 }
 
-// =========================================
-// Admin Functions - Reports
-// =========================================
-function generateReport() {
-    showNotification('ئەم تایبەتمەندیە بەردەست نییە لە وەشانی Demo', 'info');
+function updateInventory(productId, currentStock) {
+    const newStock = prompt(`بڕی نوێ بنووسە (ئێستا:  ${currentStock}):`, currentStock);
+    
+    if (newStock === null) return;
+    
+    const stockValue = parseInt(newStock);
+    
+    if (isNaN(stockValue) || stockValue < 0) {
+        showNotification('ژمارەیەکی دروست بنووسە', 'error');
+        return;
+    }
+    
+    updateProductStock(productId, stockValue);
+}
+
+async function updateProductStock(productId, newStock) {
+    try {
+        await apiRequest(`/inventory/${productId}`, 'PUT', { stock_quantity: newStock });
+        showNotification('مەخزەن نوێکرایەوە', 'success');
+        await loadInventory();
+        await loadProducts();
+    } catch (error) {
+        showNotification('هەڵەیەک ڕوویدا', 'error');
+    }
+}
+
+async function generateReport() {
+    const startDate = document.getElementById('reportStartDate').value;
+    const endDate = document.getElementById('reportEndDate').value;
+    
+    if (!startDate || !endDate) {
+        showNotification('تکایە بەروارەکان هەڵبژێرە', 'error');
+        return;
+    }
+    
+    try {
+        const data = await apiRequest(`/reports/sales? start_date=${startDate}&end_date=${endDate}`);
+        
+        document.getElementById('reportTotalSales').textContent = formatCurrency(data.total_sales);
+        document.getElementById('reportOrderCount').textContent = data.order_count;
+        document.getElementById('reportAvgOrder').textContent = formatCurrency(data.avg_order);
+        
+        showNotification('راپۆرت دروستکرا', 'success');
+    } catch (error) {
+        showNotification('هەڵەیەک ڕوویدا', 'error');
+    }
 }
 
 // =========================================
 // Utility Functions
 // =========================================
 function formatCurrency(amount) {
-    return new Intl. NumberFormat('ar-IQ', {
+    return new Intl.NumberFormat('ar-IQ', {
         style: 'decimal',
         minimumFractionDigits: 0,
         maximumFractionDigits:  0
@@ -571,7 +842,7 @@ function showNotification(message, type = 'info') {
     const toastMessage = document.getElementById('toastMessage');
     const toastIcon = document.getElementById('toastIcon');
     
-    if (!toast) return;
+    if (! toast) return;
     
     let icon, title, bgClass;
     switch(type) {
@@ -580,7 +851,7 @@ function showNotification(message, type = 'info') {
             title = 'سەرکەوتوو';
             bgClass = 'bg-success';
             break;
-        case 'error':  
+        case 'error': 
             icon = 'bi-x-circle-fill';
             title = 'هەڵە';
             bgClass = 'bg-danger';
